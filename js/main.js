@@ -700,18 +700,12 @@ class RiverGame {
 
         this.controls.update();
 
-        // GPU GPGPU Hydraulic Erosion & Water Potential Computation
-        if (this.gpuErosionEngine) {
-            this.gpuErosionEngine.step(this.flowSpeedMultiplier, this.sourceRateMultiplier);
-            this.gpuErosionEngine.readbackData(this.hydraulicSim, this.terrainManager);
-            this.updateTerrainGeometry();
-        } else {
-            this.hydraulicSim.step(
-                this.terrainManager.terrainHeights,
-                this.flowSpeedMultiplier,
-                this.sourceRateMultiplier
-            );
-        }
+        // Shallow Water Hydraulic Flow Simulation
+        this.hydraulicSim.step(
+            this.terrainManager.terrainHeights,
+            this.flowSpeedMultiplier,
+            this.sourceRateMultiplier
+        );
 
         // 法线贴图 UV 顺流偏移（沿 Z 轴向下游滑动）
         if (this.waterNormalTexture) {
