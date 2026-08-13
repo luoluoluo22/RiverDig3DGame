@@ -110,7 +110,6 @@ class GPErosionEngine {
     initShaders() {
         // Shader 1: Water Flow & Hydraulic Potential Simulation Shader
         const waterShader = `
-            uniform vec2 resolution;
             uniform float flowSpeedMultiplier;
             uniform float sourceRateMultiplier;
 
@@ -180,7 +179,6 @@ class GPErosionEngine {
 
         // Shader 2: Hydraulic Erosion & Soil Deposition Shader
         const erosionShader = `
-            uniform vec2 resolution;
             uniform float erosionRate;
             uniform float depositionRate;
 
