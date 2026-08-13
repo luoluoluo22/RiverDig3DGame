@@ -12,6 +12,16 @@ class TerrainManager {
     resetHeights() {
         const gridSize = this.gridSize;
         const worldSize = this.worldSize;
+        this.puddleIndices = [];
+
+        // 5处分布在主河道两侧不同海拔的坑洼关卡定义
+        this.puddles = [
+            { x: -50, z: -40, radius: 15, depth: 3.8 }, // 左上高山堰塞湖
+            { x: 45, z: -30, radius: 13, depth: 3.5 },  // 右上泥坑
+            { x: -45, z: 25, radius: 16, depth: 4.0 },  // 左下死水洼地
+            { x: 40, z: 35, radius: 14, depth: 3.6 },   // 右下阶梯坑洼
+            { x: 35, z: -2, radius: 11, depth: 3.2 }    // 中右死水池
+        ];
 
         for (let i = 0; i < gridSize; i++) {
             for (let j = 0; j < gridSize; j++) {
@@ -19,18 +29,35 @@ class TerrainManager {
                 const x = (j / (gridSize - 1) - 0.5) * worldSize;
                 const z = (i / (gridSize - 1) - 0.5) * worldSize;
 
-                const riverCenter = Math.sin(z * 0.05) * 15;
+                const riverCenter = Math.sin(z * 0.04) * 22;
                 const distToRiver = Math.abs(x - riverCenter);
 
                 let h = 0;
-                if (distToRiver < 12) {
-                    h = -3.5 + Math.pow(distToRiver / 12, 2) * 3.5;
+                if (distToRiver < 14) {
+                    h = -4.0 + Math.pow(distToRiver / 14, 2) * 4.0;
                 } else {
-                    const mudDistance = distToRiver - 12;
-                    h = Math.min(10, mudDistance * 0.35 + Math.sin(x * 0.2) * Math.cos(z * 0.2) * 1.5);
+                    const mudDistance = distToRiver - 14;
+                    h = Math.min(12, mudDistance * 0.3 + Math.sin(x * 0.15) * Math.cos(z * 0.15) * 2.0);
                 }
 
-                const slope = (z / worldSize) * -3;
+                // 坑洼高程挖坑计算
+                let isPuddleCell = false;
+                for (let p of this.puddles) {
+                    const distToPuddle = Math.hypot(x - p.x, z - p.z);
+                    if (distToPuddle < p.radius) {
+                        const factor = Math.cos((distToPuddle / p.radius) * (Math.PI / 2));
+                        h -= p.depth * factor;
+                        if (distToPuddle < p.radius * 0.85) {
+                            isPuddleCell = true;
+                        }
+                    }
+                }
+
+                if (isPuddleCell) {
+                    this.puddleIndices.push(idx);
+                }
+
+                const slope = (z / worldSize) * -4;
                 this.terrainHeights[idx] = h + slope;
             }
         }
@@ -44,6 +71,7 @@ class TerrainManager {
         const gz = Math.round(((point.z + worldSize / 2) / worldSize) * (gridSize - 1));
 
         const radiusCells = Math.round(radius * (gridSize / worldSize) * 2.5);
+        const factorMult = (Math.PI / 2) / radius;
         let terrainModified = false;
 
         for (let i = Math.max(0, gz - radiusCells); i <= Math.min(gridSize - 1, gz + radiusCells); i++) {
@@ -54,7 +82,7 @@ class TerrainManager {
 
                 const dist = Math.hypot(cellX - point.x, cellZ - point.z);
                 if (dist <= radius) {
-                    const factor = Math.cos((dist / radius) * (Math.PI / 2));
+                    const factor = Math.cos(dist * factorMult);
 
                     if (toolType === 'dig') {
                         this.terrainHeights[idx] -= strength * factor;

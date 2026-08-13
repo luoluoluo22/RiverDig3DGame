@@ -3,12 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D 铲泥改道与水流物理模拟 - RiverDig3DGame</title>
+    <title>3D 排水模拟器 - RiverDig3DGame</title>
     <link rel="stylesheet" href="css/style.css">
 
     <!-- Three.js & OrbitControls via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- Post Processing -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
 </head>
 <body>
 
@@ -21,19 +29,63 @@
 
     <!-- UI Overlay -->
     <div class="hud-panel header-panel">
-        <h1>🌊 3D 铲泥改道与水流物理模拟</h1>
-        <span class="badge">Three.js + 浅水流体力学</span>
+        <h1>🌊 3D 排水模拟器</h1>
+        <span class="badge">Three.js + 浅水流体力学关卡模式</span>
     </div>
 
     <div class="hint-toast">
-        💡 按住鼠标左键在两侧泥地拖拽即可铲土开渠或筑坝；右键旋转视角，滚轮缩放。
+        💡 <b>鼠标左键</b>：拖拽铲土开渠/筑坝；<b>Shift + 左键</b> / <b>中键</b> / <b>右键</b>：按住拖拽旋转 3D 视角；<b>滚轮</b>：缩放镜头。
+    </div>
+
+    <!-- Left Vertical Water Level Panel -->
+    <div class="hud-panel drainage-panel vertical-layout">
+        <div class="drainage-title">
+            <span class="icon">🏞️</span>
+            <span>坑洼积水位</span>
+        </div>
+        <div class="gauge-container">
+            <div class="gauge-track">
+                <div class="gauge-fill" id="progress-bar-fill" style="height: 100%;">
+                    <div class="liquid-shine"></div>
+                </div>
+            </div>
+            <div class="gauge-ticks">
+                <span>100%</span>
+                <span>75%</span>
+                <span>50%</span>
+                <span>25%</span>
+                <span>0%</span>
+            </div>
+        </div>
+        <div class="percentage-display">
+            <span id="puddle-percentage">100</span><span class="unit">%</span>
+        </div>
+        <div class="drainage-status-text" id="drainage-status-text">
+            水往低处流！开渠引水入河
+        </div>
+        <div class="debug-btn" id="btn-debug-puddle" title="切换积水红色高亮排查模式">
+            💧 积水排查
+        </div>
+    </div>
+
+    <!-- 3D Marker Label -->
+    <div id="marker-label" class="marker-label hidden">🔽 终点泄洪口</div>
+
+    <!-- Victory Modal -->
+    <div id="victory-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="victory-icon">🏆</div>
+            <h2 class="victory-title">排水成功！通关胜利！</h2>
+            <p class="victory-desc">太棒了！所有坑洼死水已全部顺着开凿的渠沟排入主河道流走，积水归 <b>0%</b>！</p>
+            <button id="btn-restart-victory" class="victory-btn">🔄 重新开始本关卡</button>
+        </div>
     </div>
 
     <!-- Right Settings Panel -->
     <div class="hud-panel settings-panel">
         <div class="setting-item">
             <div class="setting-label">
-                <span>铲子/刷子大小 (Radius)</span>
+                <span>铲子/刷子大小</span>
                 <span id="radius-val">3.0</span>
             </div>
             <input type="range" class="setting-slider" id="brush-radius" min="1" max="8" step="0.5" value="3.0">
@@ -41,7 +93,7 @@
 
         <div class="setting-item">
             <div class="setting-label">
-                <span>挖掘/堆土强度 (Strength)</span>
+                <span>挖掘/堆土强度</span>
                 <span id="strength-val">0.3</span>
             </div>
             <input type="range" class="setting-slider" id="brush-strength" min="0.05" max="0.8" step="0.05" value="0.3">
@@ -49,7 +101,7 @@
 
         <div class="setting-item">
             <div class="setting-label">
-                <span>水流演算速度 (Flow Speed)</span>
+                <span>水流演算速度</span>
                 <span id="speed-val">1.0x</span>
             </div>
             <input type="range" class="setting-slider" id="flow-speed" min="0" max="3" step="0.2" value="1.0">
@@ -57,7 +109,7 @@
 
         <div class="setting-item">
             <div class="setting-label">
-                <span>源头补水流量 (Source Rate)</span>
+                <span>源头补水流量</span>
                 <span id="source-val">1.0x</span>
             </div>
             <input type="range" class="setting-slider" id="source-rate" min="0" max="3" step="0.2" value="1.0">
@@ -77,23 +129,29 @@
     <!-- Bottom Toolbar -->
     <div class="hud-panel toolbar-panel">
         <div class="tool-btn active" data-tool="dig">
-            <span class="icon">⛏️</span> 铲土开渠 (Dig Mud)
+            <span class="icon">⛏️</span> 铲土开渠
         </div>
         <div class="tool-btn" data-tool="dam">
-            <span class="icon">🧱</span> 堆土筑坝 (Build Dam)
+            <span class="icon">🧱</span> 堆土筑坝
         </div>
         <div class="tool-btn" data-tool="duck">
-            <span class="icon">🐤</span> 放小黄鸭 (Put Duck)
+            <span class="icon">🐤</span> 放小黄鸭
         </div>
         <div class="tool-btn" data-tool="spring">
-            <span class="icon">⛲</span> 增加水源 (Add Spring)
+            <span class="icon">⛲</span> 增加水源
         </div>
         <div class="tool-btn" data-tool="smooth">
-            <span class="icon">🧹</span> 平整泥地 (Smooth)
+            <span class="icon">🧹</span> 平整泥地
         </div>
     </div>
 
+    <!-- Mute Button (Bottom Left) -->
+    <div class="hud-panel mute-panel" id="btn-mute" title="开启/关闭音效">
+        <span class="icon" id="mute-icon">🔊</span>
+    </div>
+
     <!-- Application Modular Scripts -->
+    <script src="js/soundManager.js"></script>
     <script src="js/hydraulicSimulation.js"></script>
     <script src="js/terrainManager.js"></script>
     <script src="js/uiController.js"></script>

@@ -6,13 +6,17 @@ class HydraulicSimulation {
         this.gridSize = gridSize;
         this.worldSize = worldSize;
         this.waterDepths = new Float32Array(gridSize * gridSize);
+        this.nextWaterDepths = new Float32Array(gridSize * gridSize);
         this.flowVectors = new Array(gridSize * gridSize).fill(0).map(() => new THREE.Vector2());
     }
 
     step(terrainHeights, flowSpeedMultiplier, sourceRateMultiplier) {
         const gridSize = this.gridSize;
         const speed = 0.18 * flowSpeedMultiplier;
-        const newWaterDepths = new Float32Array(this.waterDepths);
+        
+        // Zero-allocation Double Buffering
+        this.nextWaterDepths.set(this.waterDepths);
+        const newWaterDepths = this.nextWaterDepths;
 
         // Upstream Source Inflow (Top of River Z = -worldSize/2)
         if (sourceRateMultiplier > 0) {
@@ -68,29 +72,63 @@ class HydraulicSimulation {
             }
         }
 
-        // Downstream Outflow Drain (Bottom of Map Z = worldSize/2)
-        for (let j = 0; j < gridSize; j++) {
-            const idx = (gridSize - 1) * gridSize + j;
-            newWaterDepths[idx] *= 0.5;
+        // Downstream Outflow Drain (Bottom of Map, cover the last 4 rows to encompass the marker area)
+        for (let i = gridSize - 4; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                const idx = i * gridSize + j;
+                newWaterDepths[idx] *= 0.1; // Drain effectively
+            }
         }
 
-        this.waterDepths.set(newWaterDepths);
+        // Swap buffers instead of copying
+        const temp = this.waterDepths;
+        this.waterDepths = newWaterDepths;
+        this.nextWaterDepths = temp;
     }
 
-    resetWaterChannel(terrainHeights) {
+    resetWaterChannel(terrainHeights, puddleIndices = []) {
+        this.puddleIndices = puddleIndices;
         for (let i = 0; i < this.waterDepths.length; i++) {
             this.waterDepths[i] = 0;
         }
+
+        // 1. 填充主河道初始水深
         for (let i = 0; i < this.gridSize; i++) {
             for (let j = 0; j < this.gridSize; j++) {
                 const idx = i * this.gridSize + j;
                 const x = (j / (this.gridSize - 1) - 0.5) * this.worldSize;
                 const z = (i / (this.gridSize - 1) - 0.5) * this.worldSize;
-                const riverCenter = Math.sin(z * 0.05) * 15;
-                if (Math.abs(x - riverCenter) < 10) {
-                    this.waterDepths[idx] = 1.8;
+                const riverCenter = Math.sin(z * 0.04) * 22;
+                if (Math.abs(x - riverCenter) < 12) {
+                    this.waterDepths[idx] = 2.0;
                 }
             }
         }
+
+        // 2. 填充两侧 5 处坑洼死水池积水
+        for (let idx of this.puddleIndices) {
+            this.waterDepths[idx] = 2.6;
+        }
+
+        // 计算初始坑洼积水总量
+        this.initialPuddleWater = 0;
+        for (let idx of this.puddleIndices) {
+            this.initialPuddleWater += this.waterDepths[idx];
+        }
+        if (this.initialPuddleWater <= 0) this.initialPuddleWater = 1;
+    }
+
+    getPuddleWaterPercentage() {
+        if (!this.puddleIndices || this.puddleIndices.length === 0) return 0;
+
+        let currentWater = 0;
+        for (let idx of this.puddleIndices) {
+            if (this.waterDepths[idx] > 0.05) {
+                currentWater += this.waterDepths[idx];
+            }
+        }
+
+        const pct = Math.round((currentWater / this.initialPuddleWater) * 100);
+        return Math.max(0, Math.min(100, pct));
     }
 }
