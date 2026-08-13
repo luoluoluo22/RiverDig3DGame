@@ -168,8 +168,8 @@ class GPErosionEngine {
                     depth = max(0.0, depth - outflow);
 
                     // Compute Flow Velocity Vector
-                    vel.x = (pR - pL) * 0.5;
-                    vel.y = (pU - pD) * 0.5;
+                    vel.x = (pRight - pLeft) * 0.5;
+                    vel.y = (pUp - pDown) * 0.5;
                 } else {
                     vel = vec2(0.0);
                 }
@@ -232,7 +232,8 @@ class GPErosionEngine {
 
         const error = this.gpuCompute.init();
         if (error !== null) {
-            console.error("GPErosionEngine initialization error:", error);
+            console.error("GPErosionEngine initialization error, falling back to CPU:", error);
+            this.isSupported = false;
         }
     }
 
