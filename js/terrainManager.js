@@ -85,14 +85,14 @@ class TerrainManager {
                     const factor = Math.cos(dist * factorMult);
 
                     if (toolType === 'dig') {
-                        this.terrainHeights[idx] -= strength * factor;
+                        this.terrainHeights[idx] = Math.max(-10.0, this.terrainHeights[idx] - strength * factor);
                         terrainModified = true;
 
                         if (Math.random() < 0.3 && onParticleSpawn) {
                             onParticleSpawn(cellX, this.terrainHeights[idx] + 0.5, cellZ);
                         }
                     } else if (toolType === 'dam') {
-                        this.terrainHeights[idx] += strength * factor;
+                        this.terrainHeights[idx] = Math.min(15.0, this.terrainHeights[idx] + strength * factor);
                         terrainModified = true;
 
                         if (this.terrainHeights[idx] > this.terrainHeights[idx] + waterDepths[idx] - 0.2) {

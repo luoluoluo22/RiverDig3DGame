@@ -173,6 +173,7 @@ class GPErosionEngine {
                     vel = vec2(0.0);
                 }
 
+                depth = clamp(depth, 0.0, 5.0);
                 gl_FragColor = vec4(depth, vel.x, vel.y, 1.0);
             }
         `;
@@ -198,18 +199,19 @@ class GPErosionEngine {
                 if (depth > 0.05) {
                     // High velocity causes soil erosion (digs river deeper)
                     if (speed > 0.15) {
-                        float erodeAmount = (speed - 0.15) * 0.015 * erosionRate;
-                        height -= erodeAmount;
+                        float erodeAmount = (speed - 0.15) * 0.008 * erosionRate;
+                        height = clamp(height - erodeAmount, -10.0, 15.0);
                         sediment += erodeAmount;
                     } 
                     // Low velocity causes sediment deposition (builds delta mud)
                     else if (speed < 0.05 && sediment > 0.01) {
-                        float depositAmount = (0.05 - speed) * 0.02 * depositionRate;
-                        height += depositAmount;
+                        float depositAmount = (0.05 - speed) * 0.01 * depositionRate;
+                        height = clamp(height + depositAmount, -10.0, 15.0);
                         sediment -= depositAmount;
                     }
                 }
 
+                height = clamp(height, -10.0, 15.0);
                 gl_FragColor = vec4(height, max(0.0, sediment), isPuddle, 1.0);
             }
         `;
@@ -267,8 +269,14 @@ class GPErosionEngine {
         this.renderer.readRenderTargetPixels(rtWater, 0, 0, this.gridSize, this.gridSize, this.readBufferWater);
 
         for (let i = 0; i < this.gridSize * this.gridSize; i++) {
-            terrainManager.terrainHeights[i] = this.readBufferTerrain[i * 4 + 0];
-            hydraulicSim.waterDepths[i] = this.readBufferWater[i * 4 + 0];
+            const h = this.readBufferTerrain[i * 4 + 0];
+            const w = this.readBufferWater[i * 4 + 0];
+            if (!isNaN(h) && isFinite(h)) {
+                terrainManager.terrainHeights[i] = Math.max(-10.0, Math.min(15.0, h));
+            }
+            if (!isNaN(w) && isFinite(w)) {
+                hydraulicSim.waterDepths[i] = Math.max(0.0, Math.min(5.0, w));
+            }
         }
     }
 
