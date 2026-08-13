@@ -1,0 +1,18 @@
+{
+  "name": "river-dig-3d-game",
+  "version": "1.0.0",
+  "description": "3D 铲泥改道与水流浅水物理流体力学模拟游戏 (Three.js)",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx -y serve . -l 8085"
+  },
+  "keywords": [
+    "threejs",
+    "webgl",
+    "fluid-simulation",
+    "terrain-deformation",
+    "3d-game"
+  ],
+  "author": "luoluoluo22",
+  "license": "MIT"
+}

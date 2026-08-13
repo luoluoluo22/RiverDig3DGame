@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 铲泥改道与水流物理模拟 - RiverDig3DGame</title>
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Three.js & OrbitControls via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <div style="color: #94a3b8; font-size: 14px; font-weight: 500;">正在加载 3D 河流水流与泥土仿真引擎...</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay -->
+    <div class="hud-panel header-panel">
+        <h1>🌊 3D 铲泥改道与水流物理模拟</h1>
+        <span class="badge">Three.js + 浅水流体力学</span>
+    </div>
+
+    <div class="hint-toast">
+        💡 按住鼠标左键在两侧泥地拖拽即可铲土开渠或筑坝；右键旋转视角，滚轮缩放。
+    </div>
+
+    <!-- Right Settings Panel -->
+    <div class="hud-panel settings-panel">
+        <div class="setting-item">
+            <div class="setting-label">
+                <span>铲子/刷子大小 (Radius)</span>
+                <span id="radius-val">3.0</span>
+            </div>
+            <input type="range" class="setting-slider" id="brush-radius" min="1" max="8" step="0.5" value="3.0">
+        </div>
+
+        <div class="setting-item">
+            <div class="setting-label">
+                <span>挖掘/堆土强度 (Strength)</span>
+                <span id="strength-val">0.3</span>
+            </div>
+            <input type="range" class="setting-slider" id="brush-strength" min="0.05" max="0.8" step="0.05" value="0.3">
+        </div>
+
+        <div class="setting-item">
+            <div class="setting-label">
+                <span>水流演算速度 (Flow Speed)</span>
+                <span id="speed-val">1.0x</span>
+            </div>
+            <input type="range" class="setting-slider" id="flow-speed" min="0" max="3" step="0.2" value="1.0">
+        </div>
+
+        <div class="setting-item">
+            <div class="setting-label">
+                <span>源头补水流量 (Source Rate)</span>
+                <span id="source-val">1.0x</span>
+            </div>
+            <input type="range" class="setting-slider" id="source-rate" min="0" max="3" step="0.2" value="1.0">
+        </div>
+
+        <div class="stats-card">
+            <div>活跃河道水体: <span class="stat-val" id="stat-water">0</span></div>
+            <div>水流浮鸭数量: <span class="stat-val" id="stat-ducks">0</span></div>
+            <div>地形最低海拔: <span class="stat-val" id="stat-miny">0.0</span></div>
+            <div>水流平均流速: <span class="stat-val" id="stat-flow">1.2m/s</span></div>
+        </div>
+
+        <div class="action-btn" id="btn-reset-water">💧 重新填充上游河道</div>
+        <div class="action-btn" id="btn-reset-all" style="background: rgba(239, 68, 68, 0.25); border-color: rgba(239, 68, 68, 0.5);">🔄 重置原始泥巴地形</div>
+    </div>
+
+    <!-- Bottom Toolbar -->
+    <div class="hud-panel toolbar-panel">
+        <div class="tool-btn active" data-tool="dig">
+            <span class="icon">⛏️</span> 铲土开渠 (Dig Mud)
+        </div>
+        <div class="tool-btn" data-tool="dam">
+            <span class="icon">🧱</span> 堆土筑坝 (Build Dam)
+        </div>
+        <div class="tool-btn" data-tool="duck">
+            <span class="icon">🐤</span> 放小黄鸭 (Put Duck)
+        </div>
+        <div class="tool-btn" data-tool="spring">
+            <span class="icon">⛲</span> 增加水源 (Add Spring)
+        </div>
+        <div class="tool-btn" data-tool="smooth">
+            <span class="icon">🧹</span> 平整泥地 (Smooth)
+        </div>
+    </div>
+
+    <!-- Application Modular Scripts -->
+    <script src="js/hydraulicSimulation.js"></script>
+    <script src="js/terrainManager.js"></script>
+    <script src="js/uiController.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
