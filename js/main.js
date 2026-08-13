@@ -37,6 +37,8 @@ class RiverGame {
         this.hydraulicSim.resetWaterChannel(this.terrainManager.terrainHeights, this.terrainManager.puddleIndices);
 
         this.initThreeScene();
+        this.gpuErosionEngine = new GPErosionEngine(this.GRID_SIZE, this.WORLD_SIZE, this.renderer);
+
         this.createTerrainMesh();
         this.createWaterMesh();
         this.createBrushIndicator();
@@ -547,6 +549,9 @@ class RiverGame {
 
         if (modified) {
             this.updateTerrainGeometry();
+            if (this.gpuErosionEngine) {
+                this.gpuErosionEngine.syncFromCPU(this.terrainManager, this.hydraulicSim);
+            }
         }
     }
 
@@ -672,6 +677,10 @@ class RiverGame {
         this.terrainManager.resetHeights();
         this.hydraulicSim.resetWaterChannel(this.terrainManager.terrainHeights, this.terrainManager.puddleIndices);
 
+        if (this.gpuErosionEngine) {
+            this.gpuErosionEngine.syncFromCPU(this.terrainManager, this.hydraulicSim);
+        }
+
         this.updateTerrainGeometry();
 
         for (let duck of this.ducks) {
@@ -684,11 +693,19 @@ class RiverGame {
         requestAnimationFrame(() => this.animate());
 
         this.controls.update();
-        this.hydraulicSim.step(
-            this.terrainManager.terrainHeights,
-            this.flowSpeedMultiplier,
-            this.sourceRateMultiplier
-        );
+
+        // GPU GPGPU Hydraulic Erosion & Water Potential Computation
+        if (this.gpuErosionEngine) {
+            this.gpuErosionEngine.step(this.flowSpeedMultiplier, this.sourceRateMultiplier);
+            this.gpuErosionEngine.readbackData(this.hydraulicSim, this.terrainManager);
+            this.updateTerrainGeometry();
+        } else {
+            this.hydraulicSim.step(
+                this.terrainManager.terrainHeights,
+                this.flowSpeedMultiplier,
+                this.sourceRateMultiplier
+            );
+        }
 
         // 法线贴图 UV 顺流偏移（沿 Z 轴向下游滑动）
         if (this.waterNormalTexture) {
