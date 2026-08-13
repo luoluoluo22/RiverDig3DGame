@@ -8,7 +8,15 @@ class GPErosionEngine {
         this.worldSize = worldSize;
         this.renderer = renderer;
 
-        this.gpuCompute = new GPUComputationRenderer(gridSize, gridSize, renderer);
+        const GPUComp = window.GPUComputationRenderer || (typeof THREE !== 'undefined' ? THREE.GPUComputationRenderer : null);
+        if (!GPUComp) {
+            console.warn("GPUComputationRenderer is not defined. Falling back to CPU simulation.");
+            this.isSupported = false;
+            return;
+        }
+
+        this.isSupported = true;
+        this.gpuCompute = new GPUComp(gridSize, gridSize, renderer);
 
         // Check Float Texture Support
         if (renderer.capabilities.isWebGL2 === false) {
@@ -229,6 +237,7 @@ class GPErosionEngine {
     }
 
     step(flowSpeedMultiplier = 1.0, sourceRateMultiplier = 1.0) {
+        if (!this.isSupported) return;
         this.waterUniforms["flowSpeedMultiplier"].value = flowSpeedMultiplier;
         this.waterUniforms["sourceRateMultiplier"].value = sourceRateMultiplier;
 
@@ -236,14 +245,17 @@ class GPErosionEngine {
     }
 
     getTerrainTexture() {
+        if (!this.isSupported) return null;
         return this.gpuCompute.getCurrentRenderTarget(this.terrainVariable).texture;
     }
 
     getWaterTexture() {
+        if (!this.isSupported) return null;
         return this.gpuCompute.getCurrentRenderTarget(this.waterVariable).texture;
     }
 
     readbackData(hydraulicSim, terrainManager) {
+        if (!this.isSupported) return;
         if (!this.readBufferTerrain) {
             this.readBufferTerrain = new Float32Array(this.gridSize * this.gridSize * 4);
             this.readBufferWater = new Float32Array(this.gridSize * this.gridSize * 4);
@@ -262,6 +274,7 @@ class GPErosionEngine {
     }
 
     syncFromCPU(terrainManager, hydraulicSim) {
+        if (!this.isSupported) return;
         const tData = this.dtTerrain.image.data;
         const wData = this.dtWater.image.data;
 

@@ -37,7 +37,13 @@ class RiverGame {
         this.hydraulicSim.resetWaterChannel(this.terrainManager.terrainHeights, this.terrainManager.puddleIndices);
 
         this.initThreeScene();
-        this.gpuErosionEngine = new GPErosionEngine(this.GRID_SIZE, this.WORLD_SIZE, this.renderer);
+        try {
+            const engine = new GPErosionEngine(this.GRID_SIZE, this.WORLD_SIZE, this.renderer);
+            this.gpuErosionEngine = engine.isSupported ? engine : null;
+        } catch (e) {
+            console.warn("GPErosionEngine initialization failed, fallback to CPU simulation:", e);
+            this.gpuErosionEngine = null;
+        }
 
         this.createTerrainMesh();
         this.createWaterMesh();
