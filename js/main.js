@@ -541,7 +541,7 @@ class RiverGame {
             this.brushRadius,
             this.brushStrength,
             this.hydraulicSim.waterDepths,
-            (x, y, z) => this.spawnDirtParticle(x, y, z)
+            (x, y, z, mode) => this.spawnDirtParticle(x, y, z, mode)
         );
 
         if (this.soundManager) {
@@ -561,15 +561,26 @@ class RiverGame {
         }
     }
 
-    spawnDirtParticle(x, y, z) {
+    spawnDirtParticle(x, y, z, mode = 'dig') {
         const p = new THREE.Mesh(this.sharedDirtGeom, this.sharedDirtMat);
-        p.position.set(x + (Math.random() - 0.5), y, z + (Math.random() - 0.5));
-        p.userData.vel = new THREE.Vector3(
-            (Math.random() - 0.5) * 0.3,
-            Math.random() * 0.4 + 0.2,
-            (Math.random() - 0.5) * 0.3
-        );
-        p.userData.life = 30;
+        p.position.set(x + (Math.random() - 0.5) * 0.8, y, z + (Math.random() - 0.5) * 0.8);
+        if (mode === 'dump') {
+            // Soil dumping onto dam: Particles fall downward onto the pile
+            p.userData.vel = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.15,
+                -(Math.random() * 0.3 + 0.15),
+                (Math.random() - 0.5) * 0.15
+            );
+            p.userData.life = 25;
+        } else {
+            // Digging: Particles fly upward
+            p.userData.vel = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.3,
+                Math.random() * 0.4 + 0.2,
+                (Math.random() - 0.5) * 0.3
+            );
+            p.userData.life = 30;
+        }
         this.scene.add(p);
         this.dirtParticles.push(p);
     }

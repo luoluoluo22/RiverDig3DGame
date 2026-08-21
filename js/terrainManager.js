@@ -89,7 +89,7 @@ class TerrainManager {
                         terrainModified = true;
 
                         if (Math.random() < 0.3 && onParticleSpawn) {
-                            onParticleSpawn(cellX, this.terrainHeights[idx] + 0.5, cellZ);
+                            onParticleSpawn(cellX, this.terrainHeights[idx] + 0.5, cellZ, 'dig');
                         }
                     } else if (toolType === 'dam') {
                         this.terrainHeights[idx] = Math.min(15.0, this.terrainHeights[idx] + strength * factor);
@@ -97,6 +97,10 @@ class TerrainManager {
 
                         if (this.terrainHeights[idx] > this.terrainHeights[idx] + waterDepths[idx] - 0.2) {
                             waterDepths[idx] *= 0.5;
+                        }
+
+                        if (Math.random() < 0.35 && onParticleSpawn) {
+                            onParticleSpawn(cellX, this.terrainHeights[idx] + 1.8, cellZ, 'dump');
                         }
                     } else if (toolType === 'spring') {
                         waterDepths[idx] = Math.min(5.0, waterDepths[idx] + 0.8 * factor);
@@ -119,6 +123,43 @@ class TerrainManager {
             }
         }
 
+        // Apply natural dirt spilling (angle of repose) when piling up a dam
+        if (toolType === 'dam' && terrainModified) {
+            this.relaxSoilSlope(gz, gx, radiusCells);
+        }
+
         return terrainModified;
+    }
+
+    relaxSoilSlope(centerI, centerJ, radiusCells) {
+        const gridSize = this.gridSize;
+        const maxSlopeDiff = 0.65; // Max height difference before soil spills over
+        const spillRate = 0.3;
+
+        for (let pass = 0; pass < 2; pass++) {
+            for (let i = Math.max(1, centerI - radiusCells - 1); i <= Math.min(gridSize - 2, centerI + radiusCells + 1); i++) {
+                for (let j = Math.max(1, centerJ - radiusCells - 1); j <= Math.min(gridSize - 2, centerJ + radiusCells + 1); j++) {
+                    const idx = i * gridSize + j;
+                    const h = this.terrainHeights[idx];
+
+                    const neighbors = [
+                        (i - 1) * gridSize + j,
+                        (i + 1) * gridSize + j,
+                        i * gridSize + (j - 1),
+                        i * gridSize + (j + 1)
+                    ];
+
+                    for (let nIdx of neighbors) {
+                        const nH = this.terrainHeights[nIdx];
+                        const diff = h - nH;
+                        if (diff > maxSlopeDiff) {
+                            const transfer = (diff - maxSlopeDiff) * spillRate;
+                            this.terrainHeights[idx] -= transfer;
+                            this.terrainHeights[nIdx] += transfer;
+                        }
+                    }
+                }
+            }
+        }
     }
 }

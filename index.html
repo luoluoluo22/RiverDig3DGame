@@ -34,10 +34,6 @@
         <span class="badge">Three.js + 浅水流体力学关卡模式</span>
     </div>
 
-    <div class="hint-toast">
-        💡 <b>鼠标左键</b>：拖拽铲土开渠/筑坝；<b>Shift + 左键</b> / <b>中键</b> / <b>右键</b>：按住拖拽旋转 3D 视角；<b>滚轮</b>：缩放镜头。
-    </div>
-
     <!-- Left Vertical Water Level Panel -->
     <div class="hud-panel drainage-panel vertical-layout">
         <div class="drainage-title">
@@ -146,9 +142,19 @@
         </div>
     </div>
 
-    <!-- Mute Button (Bottom Left) -->
-    <div class="hud-panel mute-panel" id="btn-mute" title="开启/关闭音效">
-        <span class="icon" id="mute-icon">🔊</span>
+    <!-- Bottom Left Guide & Mute Panel -->
+    <div class="hud-panel bottom-left-panel">
+        <div class="panel-header-row">
+            <span class="panel-title">💡 操作指南 & 视角控制</span>
+            <div class="mute-btn-mini" id="btn-mute" title="开启/关闭音效">
+                <span id="mute-icon">🔊</span>
+            </div>
+        </div>
+        <div class="hint-list">
+            <div>🖱️ <b>左键拖拽</b>：铲土开渠 / 堆土筑坝</div>
+            <div>🎥 <b>Shift+左键/右键/中键</b>：旋转 3D 视角</div>
+            <div>⌨️ <b>WASD / 滚轮</b>：漫游 / 缩放视角</div>
+        </div>
     </div>
 
     <!-- Application Modular Scripts -->
